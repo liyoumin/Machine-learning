@@ -1,2 +1,2 @@
 # Machine-learning
-Statistic Machine Learning 
+Statistic Machine Learning and Optimal Prediction model
