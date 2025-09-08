@@ -1,0 +1,157 @@
+ 
+ ! This file was created at 00:28:54 on 01-AUG-94 by the program
+ !  <combine.for 29-JUN-94 (a TABLO-generated program)>
+ ! which accesses some of the routines in the GEMPACK software release
+ !  <GEMPACK  Release 5.1   April 1994>
+ 
+ 
+ !
+ ! Values of SUBPAR(IND,REG) - an array of size 5x6
+ !--------------------------
+ !
+ 
+ ! (Entries are written one "row" at a time, maximum of 4 per line.)
+ 
+ 5 6  real row_order ;
+ 
+ ! The matrix SUBPAR(%1,%2) with %1 in IND, %2 in REG. +++++++++++++++++++++++++
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    0.951805        0.957124        0.953637        0.995002     !%1=crops
+ !%2= SEastAsia      ROW
+    0.994352        0.990000
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    0.747746        0.771609        0.741748        0.878896     !%1=livestoc
+ !%2= SEastAsia      ROW
+    0.911558        0.874839
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    0.857340        0.877831        0.802619        0.846958     !%1=fish&foo
+ !%2= SEastAsia      ROW
+    0.865147        0.870076
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    0.259072        0.328775        0.195036        0.734237     !%1=manufact
+ !%2= SEastAsia      ROW
+    0.760720        0.674997
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    9.999990E-03    9.999990E-03    9.999990E-03    9.999990E-03 !%1=services
+ !%2= SEastAsia      ROW
+    0.534577        5.079049E-02
+ 
+ 
+ !
+ ! Values of INCPAR(IND,REG) - an array of size 5x6
+ !--------------------------
+ !
+ 
+ ! (Entries are written one "row" at a time, maximum of 4 per line.)
+ 
+ 5 6  real row_order ;
+ 
+ ! The matrix INCPAR(%1,%2) with %1 in IND, %2 in REG. +++++++++++++++++++++++++
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    0.527470        0.365569        0.313047        1.015045E-02 !%1=crops
+ !%2= SEastAsia      ROW
+    7.103603E-02    1.043021E-02
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    0.814952        0.456252        0.575526        0.423725     !%1=livestoc
+ !%2= SEastAsia      ROW
+    0.467329        0.423567
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    0.140249        0.163420        0.133020        0.553212     !%1=fish&foo
+ !%2= SEastAsia      ROW
+    0.684632        0.427969
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+    0.789915        0.795006        0.652821        0.824127     !%1=manufact
+ !%2= SEastAsia      ROW
+     1.04750        0.842648
+ 
+ !%2= NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+     1.14358         1.25418         1.27429         1.23079     !%1=services
+ !%2= SEastAsia      ROW
+     1.32750         1.34991
+ 
+ 
+ !
+ ! Values of ESUBD(IND) - an array of size 5
+ !---------------------
+ !
+ 
+ 5  real ;
+ 
+ 
+ !    crops          livestoc        fish&foo        manufact
+     2.20000         2.79165         2.40735         2.79551
+ !    services
+     1.94365
+ 
+ 
+ !
+ ! Values of ESUBM(IND) - an array of size 5
+ !---------------------
+ !
+ 
+ 5  real ;
+ 
+ 
+ !    crops          livestoc        fish&foo        manufact
+     4.40000         5.35691         4.89614         6.09348
+ !    services
+     3.91673
+ 
+ 
+ !
+ ! Values of ESUBVA(IND) - an array of size 6
+ !----------------------
+ !
+ 
+ 6 real ;
+
+ !    crops          livestoc        fish&foo        manufact
+    0.560000        0.560000         1.05798         1.23124
+ !    services
+     1.38946
+ !    CGDS
+    0.000000
+
+ 
+ !
+ ! Values of ETRAE  (a single number)
+ !----------------
+ !
+ 
+ 1  real ;
+ 
+    -1.00000
+ 
+ 
+ !
+ ! Values of RORFLEX(REG) - an array of size 6
+ !-----------------------
+ !
+ 
+ 6  real ;
+ 
+ 
+ !    NorhtAmerica   Eur_Union       AustrNZ         EastAsia
+     10.0000         10.0000         10.0000         10.0000
+ !    SEastAsia      ROW
+     10.0000         10.0000
+ 
+ 
+ !
+ ! Values of RORDELTA  (a single number)
+ !-------------------
+ !
+ 
+ 1  real ;
+ 
+    0.000000
+ 

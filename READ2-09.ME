@@ -1,0 +1,88 @@
+README file for "Multimarket Effects of Agricultural Research with 
+Technological Spillovers" by George B. Frisvold, Chapter 13 of "Global
+Trade Analysis: Modeling and Applications", Thomas W. Hertel (editor). 
+README file prepared by Elena I. Ianchovichina.
+
+This readme file contains a list of files necessary to conduct the
+experiments from Chapter 13, on assessing the multimarket effects of 
+technological change in agriculture. The files included in the list are
+explained and instructions for replicating the results of the
+experiments are provided. 
+
+
+EXPERIMENT FILES - data, sets, parameters, and mapping files: 
+		   (included in the file agg2-09.zip)
+
+	DAT2-09.HAR     Original data file
+
+	SET2-09.HAR     Original sets file
+
+	PAR2-09.DAT     Original parameters file
+
+	MAP2-09.MAP     Mapping file used to aggregate the original 
+			GTAP database to 5 commodities and 6 regions             
+
+
+EXPERIMENT FILES - command files (included in the file cmf2-09.zip):
+
+	C2-09E1A.CMF    This command file is used to implement the first part 
+			of experiment E1: output-augmenting technical change 
+			in the crops sector of Australasia.
+	C2-09E1B.CMF    This command file is used to implement the second part
+			of experiment E1:  output-augmenting technical change
+			in the crops sector of North America.
+	C2-09E1C.CMF    This command file is used to implement the third part
+			of experiment E1:  output-augmenting technical change
+			in the crops sector of Southeast Asia.
+	C2-09E2.CMF     This command file is used to implement experiment 
+			E2: output-augmenting technical change in the crops
+			sectors of Australasia, North America and Southeast
+			Asia. This is the case where research reduces costs
+			not only in the innovating country, but also leads 
+			to spillovers that reduce costs in other regions.
+	C2-09E3A.CMF    This command file is used to implement experiment
+			E3a: a 2% output augmenting technical change in the 
+			crops sector of all regions except Australasia.
+	C2-09E3B.CMF    This command file is used to implement experiment
+			E3b: a 2% output augmenting technical change in the 
+			crops sector of all regions except North America.
+	C2-09E3C.CMF    This command file is used to implement experiment
+			E3c: a 2% output augmenting technical change in the 
+			crops sector of all regions except Southeast Asia.
+	C2-09E4A.CMF    This command file is used to implement experiments
+			E4a and B2: a one percent cost reduction in the 
+			North American processed food sector from a labor-
+			augmenting technical change.
+	C2-09E4B.CMF    This command file is used to implement experiment
+			E4b: a one percent cost reduction in the processed
+			food sector of all regions except North America from
+			a labor-augmenting technical change.
+	C2-09E4C.CMF    This command file is used to implement experiment
+			E4c: a one percent cost reduction in the processed 
+			food sector of all regions from a labor-augmenting 
+			technical change.
+	C2-09B1.CMF     This command file is used to implement experiment
+			B1: a one percent cost reduction in the North 
+			American food sector from technical change which
+			is neutral / output-augmenting.
+	C2-09B3.CMF     This command file is used to implement experiment
+			B3: a one percent cost reduction in the North 
+			American food sector from technical change which
+			is livestock-augmenting.
+	C2-09B4.CMF     This command file is used to implement experiment
+			B4: a one percent cost reduction in the North 
+			American food sector from technical change which
+			is services-augmenting.
+
+
+REPLICATION OF THE EXPERIMENTS
+
+1.      To run any of the experiments of chapter 13, first type TP1010 and
+	carriage return. At the first menu choose the command file option
+	"cmf" and then enter the name of the cmf file (e.g. "C2-09E1A.CMF").
+
+2.      After TP1010 has finished the simulation, the solution file (e.g.
+	"C2-09E1A.SL4") can be examined using GEMPIE. If you choose to print
+	all of the results, you will most likely not be able to read them all
+	with your text editor. Therefore, it is recommended that you print 
+	only some of the results.  

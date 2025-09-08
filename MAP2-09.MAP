@@ -1,0 +1,157 @@
+!
+! Aggregation file for George Frisvold's Application
+!
+37 1 integer row_order header "dcom" longname "disaggregate commodities";
+1    ! pdr, paddy rice !
+1    ! wht, wheat !
+1    ! gro, grains !
+1    ! ngc, non grain crops !
+2    ! wol, wool !
+2    ! olp, other livestock !
+4    ! for, forestry !
+3    ! fsh, fisheries !
+4    ! col, coal !
+4    ! oil, oil !
+4    ! gas, gas !
+4    ! omn, other minerals !
+3    ! pcr, processed rice !
+3    ! met, meat products !
+3    ! mil, milk products !
+3    ! ofp, other food products !
+3    ! b_t, beverages and tobacco !      
+4    ! tex, textiles !
+4    ! wap, wearing apparels !
+4    ! lea, leather etc !
+4    ! lum, lumber !
+4    ! ppp, pulp paper etc !
+4    ! p_c, petroleum and coal !
+4    ! crp, chemicals rubbers and plastics !
+4    ! nmm, nonmetallic minerals !
+4    ! i_s, primary ferrous metals !
+4    ! nfm, nonferrous metals !
+4    ! fmp, fabricated metal products !
+4    ! trn, transport industries !
+4    ! ome, machinery and equipment !
+4    ! omf, other manufacturing !
+5    ! egw, electricity water and gas !
+5    ! cns, construction !
+5    ! t_t, trade and transport !
+5    ! osp, other services (private) !
+5    ! osg, other services (govt) ! 
+5    ! dwe, ownership of dwellings !
+
+
+37 1 integer row_order header "dsec" longname "disaggregate sectors";
+1    ! pdr, paddy rice !
+1    ! wht, wheat !
+1    ! gro, grains !
+1    ! ngc, non grain crops !
+2    ! wol, wool !
+2    ! olp, other livestock !
+4    ! for, forestry !
+3    ! fsh, fisheries !
+4    ! col, coal !
+4    ! oil, oil !
+4    ! gas, gas !
+4    ! omn, other minerals !
+3    ! pcr, processed rice !
+3    ! met, meat products !
+3    ! mil, milk products !
+3    ! ofp, other food products !
+3    ! b_t, beverages and tobacco !      
+4    ! tex, textiles !
+4    ! wap, wearing apparels !
+4    ! lea, leather etc !
+4    ! lum, lumber !
+4    ! ppp, pulp paper etc !
+4    ! p_c, petroleum and coal !
+4    ! crp, chemicals rubbers and plastics !
+4    ! nmm, nonmetallic minerals !
+4    ! i_s, primary ferrous metals !
+4    ! nfm, nonferrous metals !
+4    ! fmp, fabricated metal products !
+4    ! trn, transport industries !
+4    ! ome, machinery and equipment !
+4    ! omf, other manufacturing !
+5    ! egw, electricity water and gas !
+5    ! cns, construction !
+5    ! t_t, trade and transport !
+5    ! osp, other services (private) !
+5    ! osg, other services (govt) ! 
+5    ! dwe, ownership of dwellings !
+ 
+ 
+5   1 integer row_order header "acom" longname "aggregated commodities";
+1     ! crops !
+2     ! livestock !
+3     ! fsh&food  !
+4     ! manuf   !
+5     ! sevices !
+
+
+5  1 integer row_order header "asec" longname "aggregated sectors";
+1     ! crops !
+2     ! livestock !
+3     ! fish&food  !
+4     ! manufact !
+5     ! sevices !
+
+
+5  strings length 9 header "cnam" longname "agg comm names";
+crops 
+livestock 
+fish&food 
+manufact
+services
+
+
+5  strings length 9 header "snam" longname "agg sector names";
+crops 
+livestock 
+fish&food 
+manufact
+services
+
+24   1 integer row_order header "DREG" longname "disaggregated regions";
+ 3 ! AUS, Australia                    !
+ 3 ! NZL, New Zealand                  !
+ 1 ! CAN, Canada                       !
+ 1 ! USA, United States of America     !
+ 4 ! JPN, Japan                        !
+ 4 ! KOR, Republic of Korea            !
+ 2 ! E_U, European Union               !
+ 5 ! IDN, Indonesia                    !
+ 5 ! MYS, Malaysia                     !
+ 5 ! PHL, Philippines                  !
+ 5 ! SGP, Singapore                    !
+ 5 ! THA, Thailand                     !
+ 4 ! CHN, China                        !
+ 4 ! HKG, Hong Kong                    !
+ 4 ! TWN, Taiwan                       !
+ 6 ! ARG, Argentina                    !
+ 6 ! BRA, Brazil                       !
+ 6 ! MEX, Mexico                       !
+ 6 ! LAM, Rest of Latin America        !
+ 6 ! SSA, Sub Saharan Africa           !
+ 6 ! MNA, Middle East and North Africa !
+ 6 ! EIT, Economies In Transition      !
+ 6 ! SAS, South Asia                   !
+ 6 ! ROW, Rest of World                !
+ 
+
+6  1 integer row_order header "areg" longname "aggregated regions";
+1     ! US & Canada !
+2     ! E_U !
+3     ! Australia & New Zealand !
+4     ! East Asia !
+5     ! South East Asia !
+6     ! ROW !
+
+
+6  strings length 12 header "rnam" longname "agg region names";
+NorhtAmerica
+Eur_Union
+AustrNZ       
+EastAsia
+SEastAsia
+ROW
