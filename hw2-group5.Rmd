@@ -1,0 +1,120 @@
+---
+title: "ABE6933 ASML HW2"
+output: pdf_document
+fontsize: 11pt
+geometry: margin=2cm
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+# answers
+## ISLR Ch3 Q10: Carseats — multiple regression & diagnostics
+use_pkg <- function(p){ if(!requireNamespace(p, quietly = TRUE)) install.packages(p); library(p, character.only = TRUE) }
+suppressPackageStartupMessages({
+  ok1 <- require(ISLR2)
+  if(!ok1){
+    use_pkg("ISLR")  # fallback
+    data("Carseats", package = "ISLR")
+  } else {
+    data("Carseats", package = "ISLR2")
+  }
+  use_pkg("broom")
+  use_pkg("dplyr")
+  use_pkg("ggplot2")
+})
+
+''Ensure factors have the expected baselines: In the textbook, Urban and US are factors with levels "No","Yes"; make "No" the baseline explicitly''
+
+Carseats <- Carseats %>%
+  mutate(
+    Urban = factor(Urban, levels = c("No","Yes")),
+    US    = factor(US,    levels = c("No","Yes"))
+  )
+
+str(Carseats)
+summary(Carseats$Urban); summary(Carseats$US)
+
+## (a) Fit multiple regression: Sales ~ Price + Urban + US ----
+m_full <- lm(Sales ~ Price + Urban + US, data = Carseats)
+summary(m_full)
+
+''Notes:- With default treatment coding, coefficients are: (Intercept), Price (numeric slope), UrbanYes (effect vs Urban=No), USYes (effect vs US=No).''
+
+## (b) Interpretation of coefficients ----
+## (c) Model in equation form (with indicator variables) ----
+## (d) Which predictors have β_j ≠ 0? ----
+coef_table <- summary(m_full)$coefficients
+coef_table
+
+## (e) Fit a smaller model with only significant predictors ----
+m_red <- lm(Sales ~ Price + US, data = Carseats)
+summary(m_red)
+
+## (f) Compare model fit: R^2, adj R^2, RSE ----
+fit_compare <- tibble::tibble(
+  model        = c("Full: Price + Urban + US", "Reduced: Price + US"),
+  r_squared    = c(summary(m_full)$r.squared, summary(m_red)$r.squared),
+  adj_r_sq     = c(summary(m_full)$adj.r.squared, summary(m_red)$adj.r.squared),
+  RSE          = c(summary(m_full)$sigma, summary(m_red)$sigma),
+  df_resid     = c(df.residual(m_full), df.residual(m_red))
+)
+fit_compare
+
+## (g) 95% confidence intervals for coefficients in reduced model ----
+confint(m_red, level = 0.95)
+
+## (h) not required - Outliers & high leverage in the reduced model ----
+par(mfrow = c(2,2))
+plot(m_red)
+par(mfrow = c(1,1))
+infl <- influence.measures(m_red)
+summary(infl)
+aug_red <- augment(m_red)  # from broom: .fitted, .resid, .stdresid, .hat, .cooksd, etc.
+head(aug_red)
+
+n <- nobs(m_red)
+p <- length(coef(m_red))             # number of parameters including intercept
+hat_thresh   <- 2*p/n                # high leverage rule
+cook_thresh  <- 4/n                  # large influence rule
+stud_thresh  <- 3                    # large studentized residual (absolute value)
+
+flags <- aug_red %>%
+  mutate(
+    id                = row_number(),
+    high_leverage     = .hat     > hat_thresh,
+    high_cooks        = .cooksd  > cook_thresh,
+    large_studentized = abs(.std.resid) > stud_thresh
+  )
+
+summary_flags <- list(
+  thresholds = list(hat = hat_thresh, cooks = cook_thresh, stud = stud_thresh),
+  counts = colSums(flags[, c("high_leverage","high_cooks","large_studentized")]),
+  which_high_leverage     = flags$id[flags$high_leverage],
+  which_high_cooks        = flags$id[flags$high_cooks],
+  which_large_studentized = flags$id[flags$large_studentized]
+)
+summary_flags
+
+### Optional: visualize Cook’s distance and leverage
+ggplot(aug_red, aes(x = .hat, y = .cooksd)) +
+  geom_point() +
+  geom_hline(yintercept = cook_thresh, linetype = "dashed") +
+  geom_vline(xintercept = hat_thresh,  linetype = "dashed") +
+  labs(title = "Influence: leverage vs Cook's distance (reduced model)",
+       x = "Leverage (hat values)", y = "Cook's distance")
+
+
+## question 1.3 
+### a
+
+### b
+
+### c
+
+### d
+
+## question 1.4 
+
+
+
