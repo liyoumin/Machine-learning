@@ -1,0 +1,228 @@
+# hw3_solutions.R
+# ABE6933/STA6703 SML HW3 — Typed Problems 1–4
+# Author: (Youmin Li)
+# Date: (auto)
+
+############################
+# Typed Problem 3 — Code  #
+############################
+
+# ---- Core helper: OLS by hand ----
+myOLS <- function(Y, X, is1 = TRUE) {
+  # Coerce
+  Y <- as.numeric(Y)
+  X <- as.matrix(X)
+  n <- NROW(X); p <- NCOL(X)
+  stopifnot(length(Y) == n)
+  
+  # Build design (add intercept if requested)
+  if (is1) {
+    X1 <- cbind(Intercept = 1, X)
+  } else {
+    X1 <- X
+  }
+  q <- NCOL(X1)
+  
+  # Full column rank check (defensive)
+  if (qr(X1)$rank < q) stop("Design matrix is rank-deficient; columns are linearly dependent.")
+  
+  # Normal equations pieces
+  XtX <- crossprod(X1)          # t(X1) %*% X1
+  XtY <- crossprod(X1, Y)       # t(X1) %*% Y
+  
+  # OLS / MLE estimator
+  beta_hat <- solve(XtX, XtY)   # (X'X)^{-1} X'Y
+  
+  # Residuals & variance
+  fitted <- as.vector(X1 %*% beta_hat)
+  resid  <- Y - fitted
+  rss    <- sum(resid^2)
+  sigma2_hat <- rss / (n - q)   # unbiased residual variance
+  
+  # Variance-covariance of betas & SEs
+  vcov_beta <- sigma2_hat * solve(XtX)
+  se_beta   <- sqrt(diag(vcov_beta))
+  
+  list(
+    beta_hat   = as.vector(beta_hat),
+    se         = as.vector(se_beta),
+    sigma2_hat = sigma2_hat,
+    rss        = rss,
+    df_resid   = n - q,
+    fitted     = fitted,
+    resid      = resid
+  )
+}
+
+
+
+check_linear_dependence(X)
+# ---- Polynomial regression (one covariate) ----
+myPolyReg1 <- function(Y, X1, deg = 1) {
+  stopifnot(deg >= 1L, length(X1) == length(Y))
+  X <- sapply(1:deg, function(k) X1^k)
+  colnames(X) <- paste0("X^", 1:deg)
+  myOLS(Y, X, is1 = TRUE)  # intercept always included per spec
+}
+
+# ---- One-way ANOVA via OLS by hand ----
+# When is1=TRUE (default): treatment coding (k-1 dummies), baseline = first factor level
+# When is1=FALSE: cell-means model (k dummies), no intercept
+myAnova1 <- function(Y, XF, is1 = TRUE) {
+  Y  <- as.numeric(Y)
+  XF <- as.factor(XF)
+  lev <- levels(XF); k <- length(lev)
+  n <- length(Y)
+  stopifnot(length(XF) == n, k >= 2L)
+  
+  if (is1) {
+    # k-1 indicator columns (omit first level as baseline)
+    X <- sapply(lev[-1], function(lv) as.numeric(XF == lv))
+    if (!is.matrix(X)) X <- matrix(X, ncol = 1)
+    colnames(X) <- paste0("XF_", lev[-1])
+    res <- myOLS(Y, X, is1 = TRUE)
+  } else {
+    # k indicator columns, no intercept
+    X <- sapply(lev, function(lv) as.numeric(XF == lv))
+    if (!is.matrix(X)) X <- matrix(X, ncol = 1)
+    colnames(X) <- paste0("XF_", lev)
+    res <- myOLS(Y, X, is1 = FALSE)
+  }
+  res
+}
+
+###############################
+# Typed Problem 1 — Utility  #
+###############################
+
+# Check linear dependence by regressing each column on the others (with intercept)
+# Returns R^2 and RSS for each i-th column regression.
+check_linear_dependence <- function(X) {
+  X <- as.matrix(X)
+  p <- ncol(X)
+  if (p < 2) stop("Need at least two columns.")
+  out <- vector("list", p)
+  out[[1]] <- list(i = 1, note = "First column is assumed intercept in the HW spec; skip.")
+  for (i in 2:p) {
+    Xi <- X[, i]
+    Z  <- X[, -i, drop = FALSE]
+    fit <- myOLS(Xi, Z, is1 = TRUE)
+    tss <- sum((Xi - mean(Xi))^2)
+    R2  <- if (tss > 0) 1 - fit$rss / tss else NA_real_
+    out[[i]] <- list(i = i, R2 = R2, RSS = fit$rss)
+  }
+  out
+}
+
+########################################
+# Typed Problem 3 — Reproducible demos #
+########################################
+
+demo_T3_1 <- function() {
+  n <- 30; set.seed(0); p <- 3
+  X <- matrix(runif(n * p), nrow = n) * 2 - 1
+  b <- seq(1, p, by = 1)
+  Y <- X %*% b + rnorm(n)
+  
+  cat("\n=== T3.1: myOLS vs lm() (with intercept) ===\n")
+  fit_my1 <- myOLS(Y, X, is1 = TRUE)
+  print(fit_my1$beta_hat); print(fit_my1$se)
+  fit1 <- lm(Y ~ X)
+  print(coef(summary(fit1)))
+  
+  cat("\n=== T3.1: myOLS vs lm() (no intercept) ===\n")
+  fit_my0 <- myOLS(Y, X, is1 = FALSE)
+  print(fit_my0$beta_hat); print(fit_my0$se)
+  fit0 <- lm(Y ~ -1 + X)
+  print(coef(summary(fit0)))
+  invisible(NULL)
+}
+
+demo_T3_2 <- function() {
+  n <- 30; set.seed(0)
+  X <- runif(n) * 4 - 2
+  Y <- 1 + 3 * X - 2 * X^2 + 1 * X^3 + rnorm(n)
+  
+  cat("\n=== T3.2: myPolyReg1 (cubic) vs lm() ===\n")
+  fit_my <- myPolyReg1(Y, X, deg = 3)
+  print(fit_my$beta_hat); print(fit_my$se)
+  fit0 <- lm(Y ~ X + I(X^2) + I(X^3))
+  print(coef(summary(fit0)))
+  invisible(NULL)
+}
+
+demo_T3_3 <- function() {
+  n <- 30; set.seed(0)
+  XF <- rep(c("A", "B", "C"), each = 10)
+  Y  <- rnorm(n) + rep(c(1, 2, 3), each = 10)
+  
+  cat("\n=== T3.3: myAnova1 (with intercept; treatment coding) vs lm() ===\n")
+  fit_my1 <- myAnova1(Y, XF, is1 = TRUE)
+  print(fit_my1$beta_hat); print(fit_my1$se)
+  fit1 <- lm(Y ~ XF)
+  print(coef(summary(fit1)))
+  
+  cat("\n=== T3.3: myAnova1 (no intercept; cell means) vs lm() ===\n")
+  fit_my0 <- myAnova1(Y, XF, is1 = FALSE)
+  print(fit_my0$beta_hat); print(fit_my0$se)
+  fit0 <- lm(Y ~ -1 + XF)
+  print(coef(summary(fit0)))
+  invisible(NULL)
+}
+
+########################################
+# Typed Problem 4 — Likelihood & MLE   #
+########################################
+
+# The following functions assume X and Y are defined in the parent/global env,
+# e.g., via the demo generator below (same as in the HW prompt).
+
+generate_T4_data <- function() {
+  n <- 30; set.seed(0)
+  X <<- runif(n) * 4 - 2
+  Y <<- 1 + 3 * X + rnorm(n)
+  invisible(NULL)
+}
+
+# Negative log-likelihood for simple linear regression with iid Normal errors
+# b = [b0, b1], sig > 0
+myFullObj <- function(b, sig) {
+  if (sig <= 0) return(Inf)
+  mu <- b[1] + b[2] * X
+  res <- Y - mu
+  n  <- length(Y)
+  # Negative log-likelihood (sum of individual terms)
+  # -log L = n*log(sig) + n*log(sqrt(2*pi)) + (1/(2*sig^2))*sum(res^2)
+  n * log(sig) + n * log(sqrt(2 * pi)) + 0.5 * sum((res / sig)^2)
+}
+
+# Fixed sigma optimization (BFGS)
+optimize_T4_fixed_sigma <- function(sigKnown = 2, b_start = c(0, 0)) {
+  myObj1 <- function(b) myFullObj(b, sigKnown)
+  optim(par = b_start, fn = myObj1, method = "BFGS")
+}
+
+# Joint optimization over (b0, b1, sig) with box constraint sig >= 1e-5
+optimize_T4_joint <- function(theta_start = c(0, 0, 1)) {
+  f <- function(theta) {
+    b <- theta[1:2]; sig <- theta[3]
+    myFullObj(b, sig)
+  }
+  optim(par = theta_start, fn = f, method = "L-BFGS-B",
+        lower = c(-Inf, -Inf, 1e-5), control = list())
+}
+
+# Convenience: compare with OLS (lm)
+compare_with_lm <- function() {
+  ols <- lm(Y ~ X)
+  coef_ols <- coef(ols)
+  sigma_lm <- summary(ols)$sigma       # sqrt(RSS/(n - p))
+  rss <- sum(residuals(ols)^2)
+  n <- length(Y); p <- 2               # b0, b1
+  sigma_mle <- sqrt(rss / n)           # MLE for sigma under Normal
+  list(coef_ols = coef_ols, sigma_lm = sigma_lm, sigma_mle_closed_form = sigma_mle)
+}
+
+# End of file
+
+
