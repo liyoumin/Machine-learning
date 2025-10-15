@@ -1,53 +1,103 @@
+### project repo: https://www.overleaf.com/read/bghgmysbgbrk#b7ac33
 ---
 title: "ABE6933/STA6703 SML HW4"
-# author: "Nikolay Bliznyuk"
+# author: "Youmin Li"
 output: pdf_document
 fontsize: 11pt
 geometry: margin=2cm
 ---
-
-# Directions
-
-Please submit \textbf{ONE PDF} file including all your reports (answer + code + figures + comments; must be easily readable and have file size under a few megabytes) and \textbf{ONE R code script}. The R script is supplementary material to ensure that your code runs correctly. If you are using RMarkdown, please also include your \texttt{.Rmd} file. If using Python, please submit the Python notebook in lieu of the R script.
-
-Place these two (or three) files in a folder, make a zip or rar archive, and submit the archive electronically via Dropbox file request  at \texttt{\url{www.tinyurl.com/nbliznyuk-submit-files}}
-(on the landing page, enter your name so that we know it is you and email so that you get a confirmation).
-
-Please submit only ONE solution on behalf of the entire work group, NOT separate solutions by different group members. You can have multiple submissions, in which case only the most recent will be graded.
-
-
-\textbf{Deadline:} 07-Oct-2025 (Tuesday), 21:00 EST.
-
-
-# Practice/Optional Problems (do not submit)
-
-
-\begin{enumerate}
-
-\item  Complete tutorial the R tutorial in ISLR section 4.7.
-You may find the Youtube videos by Trevor Hastie helpful; for links, see file \texttt{!\_youtube\_lab\_links.txt} in the subfolder \texttt{"[2].code/islr\_labs/"}
-
-\item ISLR ch.4: problem 1
-
-\end{enumerate}
-
-
-<!-- #  Required Problems (for submission) -->
-<!-- ISLR ch. 3: 4,10 -->
-
-
 \bigskip
+###  Required Problems (for submission) -- CH4-Prob 5
+# typed in overleaf
 
-# Required Problems (for submission) 
+### CH4-prob 9
+# a) Let odds = p / (1 - p) and equivalently p = odds / (1 + odds).r round(0.37/(1+0.37), 3) ≈ 0.270 (27.0%).
+odds <- 0.37
+p <- odds / (1 + odds)
+p
 
-\textbf{For ABE6933 ASML, only ISLR problems are required; typed problems are optional but are highly recommended. For STA6703 SML, all problems below are required.}
+# b) If the probability of default is 0.16, r round(0.16/(1-0.16), 3) ≈ 0.190.
+p <- 0.16
+odds <- p / (1 - p)
+odds
+# c)  If the odds multiply by a factor k, then the log-odds (logit) shift by log k, and the probability transforms via p' = (k * p) / (1 - p + k * p)
+p <- 0.27
+k <- 2    # doubling the odds
+p_new <- (k*p)/(1 - p + k*p)
+c(old = p, new = p_new, delta = p_new - p)
 
-ISLR 2nd ed., ch.4: problems 5, 9, 14 (except g and h)
+### CH4-prob 14
+# library
+library(dplyr)
+library(ggplot2)
+install.packages("ISLR2", repos = "https://cloud.r-project.org")
+library(ISLR2)
 
-(These problems "inherit" from the ISLR 1st ed., ch.4: problems 5, 9, 11 (except g - KNN).)
+# a) We classify whether a car has high vs low gas mileage using Auto
+data(Auto)
+Auto <- Auto %>% mutate(mpg01 = as.integer(mpg > median(mpg, na.rm=TRUE)))
+table(Auto$mpg01)
 
-Problem 11 clarification: use the following code to define the training and test sets
+# b) graphic
+pairs(~ mpg + cylinders + displacement + horsepower + weight + acceleration + year + origin, data = Auto)
+ggplot(Auto, aes(x = horsepower, y = mpg, color = factor(mpg01))) + geom_point(alpha = 0.6) + theme_minimal()
+ggplot(Auto, aes(x = weight, fill = factor(mpg01))) + geom_histogram(bins=30, position="identity", alpha=0.5) + theme_minimal()
+
+# c) train\testspilt
+n <- nrow(Auto)
+propTrain <- 0.7
+nt <- floor(propTrain * n)
+set.seed(0); permID <- sample(n)
+train <- permID[1:nt]; test <- permID[(nt+1):n]
+Auto.train <- Auto[train, ]
+Auto.test  <- Auto[test, ]
+vars <- c("mpg01","displacement","horsepower","weight","acceleration")
+Auto.train.sub <- Auto.train[, vars]
+Auto.test.sub  <- Auto.test[, vars]
+
+# d) LDA on training; report test confusion and accuracy
+library(MASS)
+lda.fit <- lda(mpg01 ~ displacement + horsepower + weight + acceleration, data = Auto.train.sub)
+lda.pred <- predict(lda.fit, Auto.test.sub)$class
+lda.CM <- table(pred = lda.pred, truth = Auto.test.sub$mpg01)
+lda.err <- mean(lda.pred != Auto.test.sub$mpg01)
+list(confusion = lda.CM, test_error = lda.err)
+
+# e) QDA
+qda.fit <- qda(mpg01 ~ displacement + horsepower + weight + acceleration, data = Auto.train.sub)
+qda.pred <- predict(qda.fit, Auto.test.sub)$class
+qda.CM <- table(pred = qda.pred, truth = Auto.test.sub$mpg01)
+qda.err <- mean(qda.pred != Auto.test.sub$mpg01)
+list(confusion = qda.CM, test_error = qda.err)
+
+# f) Logistic regression
+glm.fit <- glm(mpg01 ~ displacement + horsepower + weight + acceleration,
+               data = Auto.train.sub, family = binomial)
+glm.prob <- predict(glm.fit, Auto.test.sub, type = "response")
+glm.pred <- as.integer(glm.prob > 0.5)
+glm.CM <- table(pred = glm.pred, truth = Auto.test.sub$mpg01)
+glm.err <- mean(glm.pred != Auto.test.sub$mpg01)
+list(summary = summary(glm.fit), confusion = glm.CM, test_error = glm.err)
+
+### model comparsion
+results <- tibble(
+  method = c("LDA","QDA","Logit"),
+  test_error = c(lda.err, qda.err, glm.err),
+  accuracy = 1 - c(lda.err, qda.err, glm.err)
+)
+results
+
+# Try interaction and transformation as a quick experiment, Logit has highest accuracy
+glm.fit2 <- glm(mpg01 ~ displacement + horsepower + weight + acceleration + horsepower:weight + I(log(weight)),
+                data = Auto.train, family = binomial)
+glm.prob2 <- predict(glm.fit2, Auto.test, type = "response")
+glm.pred2 <- as.integer(glm.prob2 > 0.5)
+glm.err2 <- mean(glm.pred2 != Auto.test$mpg01)
+rbind(results, c("Logit+feats", glm.err2, 1 - glm.err2))
+
+
 \begin{verbatim}
+### Problem 11 clarification: use the following code to define the training and test sets
 # n = ?; # define n as number of observations/rows in the data frame
 propTrain = 0.7;                 # proportion of obs for training
 nt = floor(propTrain * n);       # number of obs for training
@@ -56,19 +106,54 @@ train = permID[1:nt];            # ids/row numbers of the training observations
 test  = permID[(nt+1):n];        # ids/row numbers of the test observations
 \end{verbatim}
 
-\bigskip
-
 \textbf{Typed Problem 1.}
 Maximum likelihood estimation in logistic regression.
-
-Consider the Challenger O-rings dataset (see the "hw4/challenger" folder); 
-case study details are in the Powerpoint file.
+Consider the Challenger O-rings dataset (see the "hw4/challenger" folder); case study details are in the Powerpoint file.
 
 (a) Implement "by hand" the negative log-likelihood (as a function of parameter vector $\beta=[\beta_0,\beta_1]'$) for this dataset. You are allowed to use the R function \texttt{dbinom} (set log=TRUE), but you not required to use it. Important: if you implement it directly without \texttt{dbinom}, make sure that you simplify as  much as possible, i.e., implementing the likelihood and then applying the logarithm without simplifications (i.e., converting products into sums) is particularly dangerous. Test your implementation to ensure that it does not return NA's, infinities and negative infinities.
+
+challenger <- data.frame(
+  flight = 1:23,
+  temp = c(53,57,58,63,66,66.8,67,67.2,68,69,69.8,69.8,70.2,70.2,72,73,75,75,75.8,76.2,78,79,81),
+  failure = c(1,1,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,0,0)
+)
+str(challenger)
+nll_logistic <- function(beta, x, y) {
+  eta <- beta[1] + beta[2] * x
+  # Stable NLL via log1p/softplus trick: log(1+exp(eta)) - y*eta
+  # NLL = sum( log(1 + exp(eta)) - y*eta )
+  sum( log1p(exp(eta)) - y * eta )
+}
+
+# Quick checks (finite?):
+nll_logistic(c(0,0), challenger$temp, challenger$failure)
+nll_logistic(c(15,0), challenger$temp, challenger$failure)
+
 
 (b) Optimize your objective function in 1(a) using a gradient-based algorithm
 using R function \texttt{optim} function (e.g., with BFGS option) and compare your estimates with the ones produced by R function \texttt{glm} fit. Important: if you start very far from the solution, you may experience convergence issues even if your objecive function has been implemented correctly. Run numerical optimization for multiple starting points, and use 
 \texttt{b=c(15,0)} as one of your starting points.
+
+starts <- rbind(
+  c(  0,   0),
+  c( 15,   0),  # per instructions
+  c( 10, -0.1),
+  c(-10,  0.1)
+)
+
+opt_list <- apply(starts, 1, function(s0) {
+  optim(par = s0, fn = nll_logistic, x = challenger$temp, y = challenger$failure,
+        method = "BFGS", control = list(reltol = 1e-12, maxit = 1e5))
+})
+
+opt_tab <- do.call(rbind, lapply(opt_list, function(o) c(coef0 = o$par[1], coef1 = o$par[2], value = o$value, conv = o$convergence)))
+opt_tab
+
+# Compare to glm:
+glm_fit <- glm(failure ~ temp, data = challenger, family = binomial)
+coef(glm_fit)
+summary(glm_fit)
+
 
 (c) (optional) estimate the approximate variance-covariance matrix of the MLE betahat as the inverse of the "observed Fisher information" (which is the curvature/Hessian with respect to $\beta$ - estimated by finite differences - of the negative log-likelihood evaluated at the MLE $\widehat{\beta}$.) Compare with the standard errors reported by the summary of the model fitted by the R function \texttt{glm}. 
 
@@ -82,8 +167,27 @@ Specifically, to do (the optional) 1(c):
 
 (iv) examine the square root of the diagonal of S (estimated standard errors of $\widehat{\beta}$) and compare it with the standard errors reported by (summary of) the GLM fit. 
 
-\bigskip
+# Using numDeriv (preferred) if available:
+if (requireNamespace("numDeriv", quietly = TRUE)) {
+  library(numDeriv)
+  bhat <- coef(glm_fit)
+  H <- hessian(func = nll_logistic, x = bhat, x = challenger$temp, y = challenger$failure)
+  S <- solve(H)
+  se_fd <- sqrt(diag(S))
+  se_glm <- sqrt(diag(vcov(glm_fit)))
+  list(se_fd = se_fd, se_glm = se_glm)
+} else if (requireNamespace("nlme", quietly = TRUE)) {
+  library(nlme)
+  bhat <- coef(glm_fit)
+  H <- fdHess(pars = bhat, fun = nll_logistic, x = challenger$temp, y = challenger$failure)$Hessian
+  S <- solve(H)
+  se_fd <- sqrt(diag(S))
+  se_glm <- sqrt(diag(vcov(glm_fit)))
+  list(se_fd = se_fd, se_glm = se_glm)
+}
 
+
+\bigskip
 \textbf{Typed Problem 2.} classifiers with linear and nonlinear decision boundaries.
 
 Consider the simulated dataset used in hw1, in "SML.NN.data.csv."
@@ -101,4 +205,72 @@ D2: quadratic discriminant analysis
 
 Note: in this problem, we pool "train" and "valid" sets and use those for training because the classifiers do not have extra tuning parameters that require additional calibration (and all model parameters are estimated statistically). In later chapters, we'll see that this is generally not the case (e.g., we have already seen an example of a NN method where tuning parameter (neighborhood size/radius) needs to be calibrated).
 
+
+library(readr)
+library(dplyr)
+library(MASS)
+
+# Read data (expects columns: subset in {train,valid,test}, X1, X2, Y in {0,1})
+dat <- read_csv("SML.NN.data.csv")
+
+# Pool train+valid for fitting; hold out test
+train_df <- dat %>% filter(subset %in% c("train","valid"))
+test_df  <- dat %>% filter(subset == "test")
+
+# L1: logistic (additive)
+fit_L1 <- glm(Y ~ X1 + X2, data = train_df, family = binomial)
+pred_L1 <- as.integer(predict(fit_L1, test_df, type = "response") > 0.5)
+err_L1 <- mean(pred_L1 != test_df$Y)
+
+# L2: logistic with squares and interaction
+fit_L2 <- glm(Y ~ X1 + X2 + I(X1^2) + I(X2^2) + X1:X2, data = train_df, family = binomial)
+pred_L2 <- as.integer(predict(fit_L2, test_df, type = "response") > 0.5)
+err_L2 <- mean(pred_L2 != test_df$Y)
+
+# D1: LDA
+fit_D1 <- lda(as.factor(Y) ~ X1 + X2, data = train_df)
+pred_D1 <- predict(fit_D1, test_df)$class
+err_D1 <- mean(as.integer(as.character(pred_D1)) != test_df$Y)
+
+# D2: QDA
+fit_D2 <- qda(as.factor(Y) ~ X1 + X2, data = train_df)
+pred_D2 <- predict(fit_D2, test_df)$class
+err_D2 <- mean(as.integer(as.character(pred_D2)) != test_df$Y)
+
+tibble(method = c("L1 (Logit main)","L2 (Logit poly+int)","D1 (LDA)","D2 (QDA)"),
+       test_error = c(err_L1, err_L2, err_D1, err_D2),
+       accuracy = 1 - c(err_L1, err_L2, err_D1, err_D2))
+
+# Grid for boundaries
+make_grid <- function(df, n = 200) {
+  xs1 <- seq(min(df$X1), max(df$X1), length.out = n)
+  xs2 <- seq(min(df$X2), max(df$X2), length.out = n)
+  expand.grid(X1 = xs1, X2 = xs2)
+}
+
+grid <- make_grid(train_df, n = 200)
+
+# Predictions on grid
+grid$L1p <- predict(fit_L1, grid, type = "response")
+grid$L2p <- predict(fit_L2, grid, type = "response")
+
+# For LDA/QDA, use posterior for class "1"
+grid$D1p <- predict(fit_D1, grid)$posterior[, "1"]
+grid$D2p <- predict(fit_D2, grid)$posterior[, "1"]
+
+plot_decision <- function(df_grid, pcol, title) {
+  ggplot() +
+    geom_contour(data = df_grid, aes(x = X1, y = X2, z = .data[[pcol]]), breaks = 0.5) +
+    geom_point(data = train_df, aes(x = X1, y = X2, color = factor(Y)), alpha = 0.5, size = 1) +
+    scale_color_brewer(palette = "Set1") +
+    labs(title = title, color = "Y") +
+    theme_minimal()
+}
+
+plot_decision(grid, "L1p", "L1: Logistic (main effects) — decision boundary (p=0.5)")
+plot_decision(grid, "L2p", "L2: Logistic (+quadratic+interaction) — boundary")
+plot_decision(grid, "D1p", "D1: LDA — boundary")
+plot_decision(grid, "D2p", "D2: QDA — boundary")
+
+sessionInfo()
 
