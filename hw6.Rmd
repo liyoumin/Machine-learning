@@ -1,27 +1,109 @@
 ---
 title: "ABE6933/STA6703 SML HW6"
-output: pdf_document
-fontsize: 11pt
-geometry: margin=1cm
----
-
-# Directions
-Please submit \textbf{ONE PDF} file including all your reports (answer + code + figures + comments; must be easily readable and have file size under a few megabytes) and \textbf{ONE R code script}. The R script is supplementary material to ensure that your code runs correctly. If you are using RMarkdown, please also include your \texttt{.Rmd} file. If using Python, please submit the Python notebook in lieu of the R script.
-Place these two (or three) files in a folder, make a zip or rar archive, and submit the archive electronically via Dropbox file request  at \texttt{\url{www.tinyurl.com/nbliznyuk-submit-files}}
-(on the landing page, enter your name so that we know it is you and email so that you get a confirmation).
-Please submit only ONE solution on behalf of the entire work group, NOT separate solutions by different group members. You can have multiple submissions, in which case only the most recent will be graded.
-\textbf{Deadline:} 21-Oct-2025 (Tuesday), 21:00 EST.
-
-<!-- #  Required Problems (for submission) -->
-<!-- ISLR ch. 3: 4,10 -->
-
-
-\bigskip
-
-# Required Problems (for submission) code stary here
-
-ISLR (2nd ed) ch.6: 1,2,4,8
 
 <!-- ISLR (1st ed) ch.6: 1,2,4,8 -->
+
+###question CH6 - Q8
+set.seed(1)
+# Libraries
+install.packages("leaps")
+library(leaps)    # regsubsets for best subset / stepwise
+library(glmnet)   # lasso
+
+# Helper to build polynomial design up to degree D
+poly_design <- function(x, D = 10) {
+  as.data.frame(sapply(1:D, function(d) x^d)) |>
+    `names<-`(paste0("X", 1:D))
+}
+
+# ---------- (a) & (b): simulate cubic truth ----------
+n <- 100
+X <- rnorm(n)                      # (a)
+eps <- rnorm(n, sd = 1)
+b0 <- 3; b1 <- 2; b2 <- -3; b3 <- 1 # choose any constants
+Y <- b0 + b1*X + b2*X^2 + b3*X^3 + eps  # (b)
+
+D <- 10
+Xmat <- poly_design(X, D)
+dat <- data.frame(Y = Y, X = X, Xmat)   # include X^1...X^10
+
+# ---------- (c) Best subset over X^1..X^10 ----------
+# Only polynomial terms as predictors, not the raw X column twice
+pred_cols <- paste0("X", 1:D)
+form <- as.formula(paste("Y ~", paste(pred_cols, collapse = " + ")))
+
+fit.best <- regsubsets(form, data = dat, nvmax = D, method = "exhaustive")
+sum.best <- summary(fit.best)
+
+# Inspect model-size criteria
+which.min(sum.best$cp)      # Cp winner
+which.min(sum.best$bic)     # BIC winner
+which.max(sum.best$adjr2)   # Adj-R^2 winner
+
+# Plots like the lab
+par(mfrow = c(1,3))
+plot(sum.best$cp, type = "b", xlab = "Model size", ylab = "Cp")
+points(which.min(sum.best$cp), min(sum.best$cp), pch = 19)
+plot(sum.best$bic, type = "b", xlab = "Model size", ylab = "BIC")
+points(which.min(sum.best$bic), min(sum.best$bic), pch = 19)
+plot(sum.best$adjr2, type = "b", xlab = "Model size", ylab = "Adj R^2")
+points(which.max(sum.best$adjr2), max(sum.best$adjr2), pch = 19)
+
+# Report coefficients for each winner
+coef(fit.best, id = which.min(sum.best$cp))
+coef(fit.best, id = which.min(sum.best$bic))
+coef(fit.best, id = which.max(sum.best$adjr2))
+
+# ---------- (d) Forward & backward stepwise ----------
+fit.fwd <- regsubsets(form, data = dat, nvmax = D, method = "forward")
+fit.bwd <- regsubsets(form, data = dat, nvmax = D, method = "backward")
+
+sum.fwd <- summary(fit.fwd)
+sum.bwd <- summary(fit.bwd)
+
+# Compare winners by BIC (you can also compare Cp/AdjR2 analogously)
+bic.best <- which.min(sum.best$bic)
+bic.fwd  <- which.min(sum.fwd$bic)
+bic.bwd  <- which.min(sum.bwd$bic)
+
+list(
+  bic_size = c(best = bic.best, fwd = bic.fwd, bwd = bic.bwd),
+  best_bic_coefs = coef(fit.best, bic.best),
+  fwd_bic_coefs  = coef(fit.fwd,  bic.fwd),
+  bwd_bic_coefs  = coef(fit.bwd,  bic.bwd)
+)
+
+# ---------- (e) Lasso with CV ----------
+X_mm <- as.matrix(dat[, pred_cols])  # numeric matrix
+Y_vec <- dat$Y
+
+cv.lasso <- cv.glmnet(X_mm, Y_vec, alpha = 1, standardize = TRUE)
+plot(cv.lasso)                        # CV curve vs lambda
+lambda.min <- cv.lasso$lambda.min
+lambda.1se <- cv.lasso$lambda.1se
+
+coef_min <- coef(cv.lasso, s = "lambda.min")
+coef_1se <- coef(cv.lasso, s = "lambda.1se")
+list(lambda.min = lambda.min, lambda.1se = lambda.1se,
+     coef_min = coef_min, coef_1se = coef_1se)
+
+# ---------- (f) Sparse truth Y = b0 + b7 X^7 + eps ----------
+# New response with sparse seventh-power truth
+b0 <- 0; b7 <- 5
+Y2 <- b0 + b7 * X^7 + rnorm(n, sd = 1)
+dat2 <- data.frame(Y = Y2, poly_design(X, D))
+
+# Best subset (BIC)
+fit2.best <- regsubsets(Y ~ ., data = dat2, nvmax = D)
+sum2.best <- summary(fit2.best)
+which.min(sum2.best$bic)
+coef(fit2.best, which.min(sum2.best$bic))
+
+# Lasso
+X2_mm <- as.matrix(dat2[, pred_cols])
+cv2.lasso <- cv.glmnet(X2_mm, dat2$Y, alpha = 1, standardize = TRUE)
+plot(cv2.lasso)
+coef(cv2.lasso, s = "lambda.1se")
+
 
 
