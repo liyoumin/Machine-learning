@@ -1,0 +1,80 @@
+---
+title: "ABE6933/STA6703 SML HW7"
+## Q1
+library(ISLR2)
+library(ggplot2)
+
+data(Wage)
+
+# Polynomial regression (degree 4)
+fit <- lm(wage ~ poly(age, 4), data = Wage)
+age_grid <- seq(min(Wage$age), max(Wage$age))
+preds <- predict(fit, newdata = list(age = age_grid))
+
+ggplot(Wage, aes(age, wage)) +
+  geom_point(alpha = 0.3) +
+  geom_line(aes(x = age_grid, y = preds), color = "red", linewidth = 1) +
+  labs(title = "Polynomial (Degree 4) Fit of Wage vs. Age")
+
+
+# Q2
+library(dplyr)
+
+Wage <- Wage %>% mutate(agecut = cut(age, 4))
+fit_step <- lm(wage ~ agecut, data = Wage)
+summary(fit_step)
+
+ggplot(Wage, aes(age, wage)) +
+  geom_point(alpha = 0.3) +
+  geom_step(aes(x = age, y = fitted(fit_step)), color = "blue", linewidth = 1) +
+  labs(title = "Step Function Fit (4 Bins)")
+
+# Q3
+library(splines)
+
+fit_smooth <- smooth.spline(Wage$age, Wage$wage, cv = TRUE)
+fit_smooth$df  # effective degrees of freedom
+plot(Wage$age, Wage$wage, col = "gray")
+lines(fit_smooth, col = "blue", lwd = 2)
+
+# Q6
+set.seed(1)
+library(boot)
+
+# Polynomial: select optimal degree by CV
+cv.err <- sapply(1:10, function(d) {
+  fit <- glm(wage ~ poly(age, d), data = Wage)
+  cv.glm(Wage, fit, K = 10)$delta[1]
+})
+plot(1:10, cv.err, type = "b", pch = 19)
+which.min(cv.err)
+
+cv.err.step <- sapply(2:10, function(k) {
+  Wage$agecut <- cut(Wage$age, k)
+  fit <- glm(wage ~ agecut, data = Wage)
+  cv.glm(Wage, fit, K = 10)$delta[1]
+})
+plot(2:10, cv.err.step, type = "b", pch = 19)
+which.min(cv.err.step)
+
+# Q10
+library(mgcv)
+
+data(College)
+set.seed(2)
+train <- sample(1:nrow(College), nrow(College)/2)
+test <- -train
+
+# (a) Forward stepwise selection
+library(leaps)
+regfit_fwd <- regsubsets(Outstate ~ ., data = College[train,], nvmax = 17, method = "forward")
+summary(regfit_fwd)$which[which.max(summary(regfit_fwd)$adjr2),]
+
+# (b) Fit GAM on selected predictors
+gam.fit <- gam(Outstate ~ s(Room.Board) + s(Grad.Rate) + Private + s(PhD),
+               data = College[train,])
+plot(gam.fit, se = TRUE)
+
+# (c) Test-set evaluation
+pred <- predict(gam.fit, newdata = College[test,])
+mean((College$Outstate[test] - pred)^2)
