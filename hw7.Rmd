@@ -1,80 +1,208 @@
 ---
 title: "ABE6933/STA6703 SML HW7"
-## Q1
-library(ISLR2)
+## Q2
+# Exercise 7.2 - Conceptual demonstration of λ and m
 library(ggplot2)
 
-data(Wage)
+# Create an example set of noisy data
+set.seed(1)
+x <- seq(0, 10, length.out = 100)
+y <- sin(x) + rnorm(100, sd = 0.3)
+df <- data.frame(x, y)
 
-# Polynomial regression (degree 4)
-fit <- lm(wage ~ poly(age, 4), data = Wage)
-age_grid <- seq(min(Wage$age), max(Wage$age))
-preds <- predict(fit, newdata = list(age = age_grid))
+# Create several "fits" to visualize conceptual impact
+p <- ggplot(df, aes(x, y)) +
+  geom_point(color = "gray50") +
+  theme_minimal(base_size = 14)
 
-ggplot(Wage, aes(age, wage)) +
-  geom_point(alpha = 0.3) +
-  geom_line(aes(x = age_grid, y = preds), color = "red", linewidth = 1) +
-  labs(title = "Polynomial (Degree 4) Fit of Wage vs. Age")
+# a) λ = ∞, m = 0 → g(x) ≡ 0
+p + geom_hline(yintercept = 0, color = "blue", lwd = 1.2) +
+  ggtitle("λ = ∞, m = 0 → g(x) = 0")
 
+# b) λ = ∞, m = 1 → g'(x)=0 → constant
+p + geom_hline(yintercept = mean(y), color = "darkorange", lwd = 1.2) +
+  ggtitle("λ = ∞, m = 1 → Constant fit")
 
-# Q2
-library(dplyr)
+# c) λ = ∞, m = 2 → g''(x)=0 → linear fit
+fit_lin <- lm(y ~ x, data = df)
+df$y_lin <- predict(fit_lin)
+ggplot(df, aes(x, y)) +
+  geom_point(color = "gray50") +
+  geom_line(aes(y = y_lin), color = "blue", lwd = 1.2) +
+  theme_minimal(base_size = 14) +
+  ggtitle("λ = ∞, m = 2 → Linear fit")
 
-Wage <- Wage %>% mutate(agecut = cut(age, 4))
-fit_step <- lm(wage ~ agecut, data = Wage)
-summary(fit_step)
+# d) λ = ∞, m = 3 → g'''(x)=0 → quadratic fit
+fit_quad <- lm(y ~ poly(x, 2), data = df)
+df$y_quad <- predict(fit_quad)
+ggplot(df, aes(x, y)) +
+  geom_point(color = "gray50") +
+  geom_line(aes(y = y_quad), color = "forestgreen", lwd = 1.2) +
+  theme_minimal(base_size = 14) +
+  ggtitle("λ = ∞, m = 3 → Quadratic fit")
 
-ggplot(Wage, aes(age, wage)) +
-  geom_point(alpha = 0.3) +
-  geom_step(aes(x = age, y = fitted(fit_step)), color = "blue", linewidth = 1) +
-  labs(title = "Step Function Fit (4 Bins)")
+# e) λ = 0, m = 3 → Interpolating spline (very wiggly)
+library(splines)
+fit_spline <- smooth.spline(x, y, spar = 0.05)
+lines(fit_spline, col = "red", lwd = 2)
+title("λ = 0, m = 3 → Interpolating spline")
+
 
 # Q3
-library(splines)
+# Exercise 7.3 - Basis function example
+beta0 <- 1
+beta1 <- 1
+beta2 <- -2
 
-fit_smooth <- smooth.spline(Wage$age, Wage$wage, cv = TRUE)
-fit_smooth$df  # effective degrees of freedom
-plot(Wage$age, Wage$wage, col = "gray")
-lines(fit_smooth, col = "blue", lwd = 2)
+X <- seq(-2, 2, length = 200)
+b1 <- X
+b2 <- ifelse(X >= 1, (X - 1)^2, 0)
 
-# Q6
+Yhat <- beta0 + beta1 * b1 + beta2 * b2
+df2 <- data.frame(X, Yhat)
+
+# Piecewise analytical segments
+Y_left  <- 1 + X[X < 1]             # for X < 1
+Y_right <- 1 + X[X >= 1] - 2*(X[X >= 1] - 1)^2  # for X ≥ 1
+
+# Plot
+plot(X, Yhat, type = "l", lwd = 2, col = "blue",
+     main = "Exercise 7.3 – Piecewise Basis Function Fit",
+     xlab = "X", ylab = "Estimated Y")
+abline(v = 1, lty = 2, col = "gray40")
+text(1, 2, "Knot at X = 1", pos = 4, cex = 0.9)
+points(X, Yhat, pch = 20, col = "blue")
+
+# Exercise 7.6 - ISLR2 Chapter 7
+library(ISLR2)
+library(boot)       # for cv.glm
+library(ggplot2)
+data(Wage)
+
+# ---------------------------
+# (a) Polynomial regression
+# ---------------------------
 set.seed(1)
-library(boot)
+cv.error <- rep(0, 10)
 
-# Polynomial: select optimal degree by CV
-cv.err <- sapply(1:10, function(d) {
+for (d in 1:10) {
   fit <- glm(wage ~ poly(age, d), data = Wage)
-  cv.glm(Wage, fit, K = 10)$delta[1]
-})
-plot(1:10, cv.err, type = "b", pch = 19)
-which.min(cv.err)
+  cv.error[d] <- cv.glm(Wage, fit, K = 10)$delta[1]
+}
 
-cv.err.step <- sapply(2:10, function(k) {
-  Wage$agecut <- cut(Wage$age, k)
-  fit <- glm(wage ~ agecut, data = Wage)
-  cv.glm(Wage, fit, K = 10)$delta[1]
-})
-plot(2:10, cv.err.step, type = "b", pch = 19)
-which.min(cv.err.step)
+# Optimal degree
+d.opt <- which.min(cv.error)
+print(d.opt)
+
+# Plot CV errors
+plot(1:10, cv.error, type = "b", pch = 19, col = "blue",
+     xlab = "Polynomial degree", ylab = "10-fold CV Error",
+     main = "Cross-validation for polynomial degree")
+
+# Fit best polynomial
+fit.poly <- lm(wage ~ poly(age, d.opt), data = Wage)
+
+# ANOVA comparison (nested models)
+fit.list <- lapply(1:5, function(i) lm(wage ~ poly(age, i), data = Wage))
+anova(fit.list[[1]], fit.list[[2]], fit.list[[3]], fit.list[[4]], fit.list[[5]])
+
+# Visualization of polynomial fit
+age.grid <- seq(min(Wage$age), max(Wage$age), length = 100)
+pred.poly <- predict(fit.poly, newdata = list(age = age.grid))
+
+plot(Wage$age, Wage$wage, col = "gray", pch = 20,
+     xlab = "Age", ylab = "Wage", main = paste("Polynomial fit (degree =", d.opt, ")"))
+lines(age.grid, pred.poly, col = "blue", lwd = 2)
+
+# (b) Step function with cross-validation
+library(ISLR2)
+library(boot)
+set.seed(2)
+
+# initialize vector
+cv.error.step <- rep(NA, 10)
+
+# Loop over possible numbers of cuts
+for (k in 2:10) {
+  Wage$age.cut <- cut(Wage$age, breaks = k)
+  fit <- glm(wage ~ age.cut, data = Wage)
+  cv.error.step[k] <- cv.glm(Wage, fit, K = 10)$delta[1]
+}
+
+# Determine optimal number of cuts
+k.opt <- which.min(cv.error.step)
+k.opt
+# Usually returns something like 6
+
+# Plot CV errors
+plot(2:10, cv.error.step[2:10], type = "b", pch = 19, col = "darkgreen",
+     xlab = "Number of cuts", ylab = "10-fold CV Error",
+     main = "Cross-validation for step function")
+
+# Fit step function with optimal number of cuts
+Wage$age.cut <- cut(Wage$age, breaks = k.opt)
+fit.step <- lm(wage ~ age.cut, data = Wage)
+
+# Create prediction grid
+age.grid <- seq(min(Wage$age), max(Wage$age), length = 100)
+age.grid.cut <- cut(age.grid, breaks = k.opt)
+pred.step <- predict(fit.step, newdata = data.frame(age.cut = age.grid.cut))
+
+# Plot fitted step function
+plot(Wage$age, Wage$wage, col = "gray", pch = 20,
+     xlab = "Age", ylab = "Wage",
+     main = paste("Step Function Fit (", k.opt, " cuts)", sep = ""))
+lines(age.grid, pred.step, col = "darkgreen", lwd = 2)
 
 # Q10
-library(mgcv)
-
-data(College)
-set.seed(2)
-train <- sample(1:nrow(College), nrow(College)/2)
-test <- -train
-
-# (a) Forward stepwise selection
+#-------------------------------
+library(ISLR2)
 library(leaps)
-regfit_fwd <- regsubsets(Outstate ~ ., data = College[train,], nvmax = 17, method = "forward")
-summary(regfit_fwd)$which[which.max(summary(regfit_fwd)$adjr2),]
+set.seed(1)
 
-# (b) Fit GAM on selected predictors
-gam.fit <- gam(Outstate ~ s(Room.Board) + s(Grad.Rate) + Private + s(PhD),
-               data = College[train,])
-plot(gam.fit, se = TRUE)
+# Load data
+data(College)
 
-# (c) Test-set evaluation
-pred <- predict(gam.fit, newdata = College[test,])
-mean((College$Outstate[test] - pred)^2)
+# Split into training (70%) and test (30%)
+train <- sample(1:nrow(College), nrow(College) * 0.7)
+College.train <- College[train, ]
+College.test  <- College[-train, ]
+
+# Forward stepwise selection using regsubsets
+regfit.fwd <- regsubsets(Outstate ~ ., data = College.train, nvmax = 17, method = "forward")
+reg.summary <- summary(regfit.fwd)
+
+# Plot Cp, BIC, Adj-R2
+par(mfrow = c(1, 3))
+plot(reg.summary$cp, type = "b", pch = 19, col = "blue", main = "Cp")
+plot(reg.summary$bic, type = "b", pch = 19, col = "red", main = "BIC")
+plot(reg.summary$adjr2, type = "b", pch = 19, col = "darkgreen", main = "Adjusted R2")
+par(mfrow = c(1, 1))
+
+# Best model by BIC
+best.size <- which.min(reg.summary$bic)
+best.size
+coef(regfit.fwd, best.size)
+
+### ch7. 7.10-b
+install.packages("gam")
+library(gam)
+
+# Suppose the best model selected these predictors:
+# Private, Room.Board, PhD, perc.alumni, Expend, Grad.Rate
+gam.fit <- gam(Outstate ~ Private + s(Room.Board, 4) + s(PhD, 4) +
+                 s(perc.alumni, 4) + s(Expend, 5) + s(Grad.Rate, 4),
+               data = College.train)
+
+summary(gam.fit)
+
+# Plot smooth functions
+par(mfrow = c(2, 3))
+plot(gam.fit, se = TRUE, col = "blue")
+par(mfrow = c(1, 1))
+
+# Predict and compute test MSE
+pred.gam <- predict(gam.fit, newdata = College.test)
+mse.gam <- mean((College.test$Outstate - pred.gam)^2)
+mse.gam
+
