@@ -1,0 +1,172 @@
+### ASML-HW8
+## Youmin Li
+library(ISLR2)
+install.packages("tree")
+library(tree)
+library(caret)
+
+
+# ch8. question3
+# Plot impurity functions
+p <- seq(0, 1, length.out = 1000)
+err <- 1 - pmax(p, 1 - p)
+gini <- 2 * p * (1 - p)
+entropy <- -(p * log(p + 1e-12) + (1 - p) * log(1 - p + 1e-12))
+
+par(mar = c(5, 5, 4, 6)) 
+
+plot(p, gini, type = "l", lwd = 2, col = "black",
+     ylim = c(0, 1), ylab = "Impurity", xlab = expression(hat(p)[m1]),
+     main = "Comparison of Impurity Measures")
+lines(p, entropy, col = "red", lwd = 2)
+lines(p, err, col = "green3", lwd = 2)
+legend("right", inset = c(-0.12, 0), xpd = TRUE,
+       legend = c("Gini", "Entropy", "Classification Error"),
+       col = c("black", "red", "green3"), lwd = 2, bty = "n")
+
+### question 8
+library(BART)
+library(caret)
+
+set.seed(1)
+data(Carseats)
+dat <- Carseats
+
+# Split
+idx <- sample(seq_len(nrow(dat)), size = floor(0.7 * nrow(dat)))
+train <- dat[idx, ]
+test <- dat[-idx, ]
+
+# Regression tree
+tree_fit <- tree(Sales ~ ., data = train)
+plot(tree_fit); text(tree_fit, pretty = 0)
+yhat_tree <- predict(tree_fit, test)
+mse_tree <- mean((test$Sales - yhat_tree)^2)
+
+# CV pruning
+cv_fit <- cv.tree(tree_fit)
+best_size <- cv_fit$size[which.min(cv_fit$dev)]
+pruned <- prune.tree(tree_fit, best = best_size)
+yhat_pruned <- predict(pruned, test)
+mse_pruned <- mean((test$Sales - yhat_pruned)^2)
+
+# Bagging
+p <- ncol(train) - 1
+bag_fit <- randomForest(Sales ~ ., data = train, mtry = p, importance = TRUE)
+mse_bag <- mean((test$Sales - predict(bag_fit, test))^2)
+
+# Random forest tuning
+mtry_grid <- 2:(p)
+rf_err <- sapply(mtry_grid, function(m)
+  mean((test$Sales - predict(randomForest(Sales ~ ., data = train, mtry = m), test))^2)
+)
+best_mtry <- mtry_grid[which.min(rf_err)]
+rf_fit <- randomForest(Sales ~ ., data = train, mtry = best_mtry, importance = TRUE)
+mse_rf <- mean((test$Sales - predict(rf_fit, test))^2)
+
+# BART
+x_tr <- subset(train, select = -Sales)
+x_te <- subset(test, select = -Sales)
+
+# Convert factors to dummy variables using model.matrix
+x_tr_mat <- model.matrix(~ ., data = x_tr)[, -1]   # remove intercept
+x_te_mat <- model.matrix(~ ., data = x_te)[, -1]
+
+y_tr <- train$Sales
+y_te <- test$Sales
+
+# Run BART
+set.seed(123)
+bart_fit <- gbart(x.train = x_tr_mat, y.train = y_tr, x.test = x_te_mat)
+
+# Compute test MSE
+yhat_bart <- bart_fit$yhat.test.mean
+mse_bart <- mean((y_te - yhat_bart)^2)
+mse_bart
+#
+
+### question9
+library(caret)
+set.seed(2)
+
+data(OJ)
+tr_idx <- sample(seq_len(nrow(OJ)), 800)
+oj_tr <- OJ[tr_idx, ]
+oj_te <- OJ[-tr_idx, ]
+
+# Fit classification tree
+tree_oj <- tree(Purchase ~ ., data = oj_tr)
+plot(tree_oj); text(tree_oj, pretty = 0)
+
+# Test accuracy
+pred <- predict(tree_oj, newdata = oj_te, type = "class")
+confusionMatrix(pred, oj_te$Purchase)
+
+# Cross-validation
+cv_oj <- cv.tree(tree_oj, FUN = prune.misclass)
+best_size <- cv_oj$size[which.min(cv_oj$dev)]
+pruned_oj <- prune.misclass(tree_oj, best = best_size)
+
+# Compare train/test errors
+train_err <- mean(predict(tree_oj, oj_tr, type = "class") != oj_tr$Purchase)
+test_err <- mean(predict(tree_oj, oj_te, type = "class") != oj_te$Purchase)
+train_err_p <- mean(predict(pruned_oj, oj_tr, type = "class") != oj_tr$Purchase)
+test_err_p <- mean(predict(pruned_oj, oj_te, type = "class") != oj_te$Purchase)
+
+data.frame(
+  Model = c("Unpruned", paste0("Pruned(", best_size, " leaves)")),
+  Train_Error = c(train_err, train_err_p),
+  Test_Error = c(test_err, test_err_p)
+)
+
+## question 10
+install.packages("gbm", dependencies = TRUE)
+library(gbm)
+library(glmnet)
+library(randomForest)
+set.seed(3)
+
+data(Hitters)
+h <- na.omit(Hitters)
+h$logSalary <- log(h$Salary)
+
+tr_idx <- 1:200
+h_tr <- h[tr_idx, ]
+h_te <- h[-tr_idx, ]
+
+etas <- c(0.001, 0.005, 0.01, 0.02, 0.05, 0.1)
+train_mse <- test_mse <- numeric(length(etas))
+
+for (i in seq_along(etas)) {
+  fit <- gbm(logSalary ~ . - Salary, data = h_tr, distribution = "gaussian",
+             n.trees = 1000, interaction.depth = 4, shrinkage = etas[i])
+  train_mse[i] <- mean((h_tr$logSalary - predict(fit, h_tr, n.trees = 1000))^2)
+  test_mse[i] <- mean((h_te$logSalary - predict(fit, h_te, n.trees = 1000))^2)
+}
+
+plot(etas, test_mse, type = "b", log = "x",
+     xlab = "Shrinkage", ylab = "Test MSE", main = "Boosting Performance")
+
+best_eta <- etas[which.min(test_mse)]
+
+# OLS, Lasso, Bagging comparison
+ols <- lm(logSalary ~ . - Salary, data = h_tr)
+mse_ols <- mean((h_te$logSalary - predict(ols, h_te))^2)
+
+x_tr <- model.matrix(logSalary ~ . - Salary, h_tr)[, -1]
+y_tr <- h_tr$logSalary
+x_te <- model.matrix(logSalary ~ . - Salary, h_te)[, -1]
+y_te <- h_te$logSalary
+
+lasso <- cv.glmnet(x_tr, y_tr, alpha = 1)
+yhat_lasso <- predict(lasso, s = "lambda.min", newx = x_te)
+mse_lasso <- mean((y_te - yhat_lasso)^2)
+
+bag <- randomForest(x = x_tr, y = y_tr, mtry = ncol(x_tr))
+mse_bag <- mean((y_te - predict(bag, x_te))^2)
+
+data.frame(
+  Model = c("Boosting", "OLS", "Lasso", "Bagging"),
+  Test_MSE = c(min(test_mse), mse_ols, mse_lasso, mse_bag)
+)
+
