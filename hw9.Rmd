@@ -1,0 +1,78 @@
+---
+title: "STA6703 SML HW9"
+# author: Youmin Li
+#----------------------
+## ch9 - q5
+
+set.seed(1)
+n <- 500
+x1 <- runif(n) - 0.5
+x2 <- runif(n) - 0.5
+y  <- as.factor(1 * (x1^2 - x2^2 > 0))
+dat <- data.frame(x1, x2, y)
+
+# (c) plain logistic (linear boundary)
+
+m_lin <- glm(y ~ x1 + x2, family = binomial, data = dat)
+
+# (e) logistic with non-linear terms
+
+m_nl  <- glm(y ~ x1 + x2 + I(x1^2) + I(x2^2) + I(x1*x2),
+             family = binomial, data = dat)
+
+# (g,h) SVMs
+
+library(e1071)
+svm_lin <- svm(y ~ x1 + x2, data = dat, kernel = "linear", cost = 1)
+svm_rbf <- svm(y ~ x1 + x2, data = dat, kernel = "radial", gamma = 5, cost = 1)
+
+# quick training errors
+
+mean(predict(m_lin, type="response") > .5 != (y=="1"))
+mean(predict(m_nl,  type="response") > .5 != (y=="1"))
+mean(predict(svm_lin, dat) != y)
+mean(predict(svm_rbf, dat) != y)
+
+## ch9 - q8 -----------
+
+library(ISLR2)
+library(e1071)
+set.seed(1)
+
+oj <- OJ
+id_train <- sample(seq_len(nrow(oj)), 800)
+train <- oj[id_train, ]
+test  <- oj[-id_train, ]
+
+# Linear SVC (tune cost)
+
+t_lin <- tune(svm, Purchase ~ ., data = train,
+              kernel = "linear",
+              ranges = list(cost = 10^seq(-3, 3, by = 1)))
+svm_lin <- t_lin$best.model
+tab_lin <- table(pred = predict(svm_lin, test), truth = test$Purchase)
+err_lin <- 1 - sum(diag(tab_lin)) / sum(tab_lin)
+
+# RBF SVM (tune gamma, cost)
+
+t_rbf <- tune(svm, Purchase ~ ., data = train,
+              kernel = "radial",
+              ranges = list(cost = 10^seq(-2, 3, by = 1),
+                            gamma = 10^seq(-3, 1, by = 1)))
+svm_rbf <- t_rbf$best.model
+tab_rbf <- table(pred = predict(svm_rbf, test), truth = test$Purchase)
+err_rbf <- 1 - sum(diag(tab_rbf)) / sum(tab_rbf)
+
+# Polynomial SVM (tune degree, cost)
+
+t_poly <- tune(svm, Purchase ~ ., data = train,
+               kernel = "polynomial",
+               ranges = list(cost = 10^seq(-2, 3, by = 1),
+                             degree = 2:4))
+
+svm_poly <- t_poly$best.model
+tab_poly <- table(pred = predict(svm_poly, test), truth = test$Purchase)
+err_poly <- 1 - sum(diag(tab_poly)) / sum(tab_poly)
+
+list(test_error = c(linear = err_lin, rbf = err_rbf, poly = err_poly))
+
